@@ -29,4 +29,4 @@ loop between OCR and LaTeX mathematics, checked on the page's ink.
 ## State
 
 New (2026-10-22). No code yet; the design is being brought in from a
-chat. Licence: not chosen yet.
+chat. Licence: MIT (LICENSE).
