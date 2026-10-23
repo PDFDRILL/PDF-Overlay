@@ -18,7 +18,7 @@ Styling, axes and the data path are not built yet.
 
 | source | gives |
 |---|---|
-| [inkdrill](https://github.com/WulfKolbe/inkdrill) | per-glyph ink boxes on a rendered page (`--glyphs` → MathPix-shaped `lines.json`) |
+| [inkdrill](https://github.com/PDFDRILL/inkdrill) | per-glyph ink boxes on a rendered page (`--glyphs` → MathPix-shaped `lines.json`) |
 | a page histogram program | the profile values themselves |
 | `e12s41.ps` | the curve library — object-oriented PostScript that draws x,y curves |
 
