@@ -1,0 +1,9 @@
+%!PS  H1: EndPage hook, lines on page 3 only
+/Overlays 10 dict def
+Overlays 3 { 1 0 0 setrgbcolor 1 setlinewidth
+             newpath  50 30 moveto 562 30 lineto stroke      % horizontal
+             newpath 590 50 moveto 590 742 lineto stroke } put % vertical
+<< /EndPage { dup 2 ne
+     { exch 1 add Overlays exch 2 copy known
+       { get gsave initgraphics exec grestore } { pop pop } ifelse pop true }
+     { pop pop false } ifelse } bind >> setpagedevice

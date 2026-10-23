@@ -1,0 +1,25 @@
+% plot.ps -- basis curves on top of curvebase.ps (Elbe CURVE class)
+/PLOTfields {
+  /oclose  { end oclose } def            % derived-class rule
+  /frame.x 0 def /frame.y 0 def /frame.w 100 def /frame.h 100 def
+  /data.low 0 def /data.high 1 def
+  /plot { % Y -> -
+    /Y exch def
+    gsave
+      frame.x frame.y translate
+      scalexy scale
+      newpath
+      0 Y 0 get data.low sub pt moveto
+      1 1 Y length 1 sub { dup Y exch get data.low sub pt lineto } for
+      strokecurve                         % stroke in default space, then oclose
+    grestore
+  } def
+} def
+(HPLOT) curvemake HPLOT PLOTfields
+  /pt {} def
+  /scalexy { frame.w Y length 1 sub div  frame.h data.high data.low sub div } def
+oclose
+(VPLOT) curvemake VPLOT PLOTfields
+  /pt { exch } def
+  /scalexy { frame.w data.high data.low sub div  frame.h Y length 1 sub div } def
+oclose

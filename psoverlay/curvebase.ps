@@ -1,0 +1,46 @@
+/cm { 28.346456 mul } bind def
+
+/strcat { % s2 s1 strcat => s1s2
+          2 copy length exch length add string 
+          2 copy copy length
+          exch dup
+          3 -1 roll
+          4 -1 roll pop
+          4 -1 roll
+          putinterval 
+        } def
+/curvemake { % (name) expected on stack
+        % make dictionary
+        dup (.class) exch strcat dup cvn 30 dict def
+        % make proc
+        exch (/) strcat exch ( {CURVE ) strcat
+        ( begin} def) exch strcat exch strcat
+        cvx exec
+      } def
+
+/CURVE.class 50 dict def /CURVE  {CURVE.class begin} def
+CURVE
+/linecap 1 def
+/linejoin 1 def
+/miterlimit 10 def
+/flatness 0.1 def
+/grayvalue 0 def
+/linewidth 0.025 cm def
+/dashtype {[6 2] 0} def
+/oclose { end } def
+/strokecurve { 
+               gsave
+               % [1 0 0 1 0 0] setmatrix
+              initmatrix    % brutal aber offensichtlich notwendig 
+               linecap     setlinecap
+               linejoin    setlinejoin
+               miterlimit  setmiterlimit
+               % flatness    setflat
+               grayvalue   setgray 
+               linewidth   setlinewidth
+               % dash        setdash
+               stroke  
+               grestore 
+               oclose
+             } def
+oclose

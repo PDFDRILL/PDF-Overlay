@@ -1,0 +1,14 @@
+%!PS  C4: both basis curves via EndPage hook on page 3
+(curvebase.ps) run (plot.ps) run
+/N 1650 def /Yd N array def
+0 1 N 1 sub { Yd exch dup 360 mul N 1 sub div sin 50 mul 50 add put } for
+HPLOT /frame.x  54 def /frame.y  8 def /frame.w 505 def /frame.h  42 def
+      /data.low 0 def /data.high 100 def oclose
+VPLOT /frame.x 564 def /frame.y 58 def /frame.w  42 def /frame.h 678 def
+      /data.low 0 def /data.high 100 def oclose
+/Overlays 10 dict def
+Overlays 3 { Yd HPLOT plot  Yd VPLOT plot } put
+<< /EndPage { dup 2 ne
+     { exch 1 add Overlays exch 2 copy known
+       { get gsave initgraphics exec grestore } { pop pop } ifelse pop true }
+     { pop pop false } ifelse } bind >> setpagedevice

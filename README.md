@@ -29,4 +29,7 @@ loop between OCR and LaTeX mathematics, checked on the page's ink.
 ## State
 
 New (2026-10-22). No code yet; the design is being brought in from a
-chat. Licence: MIT (LICENSE).
+chat. Design notes so far: [docs/TOP-20-notes.md](docs/TOP-20-notes.md).
+PostScript overlays stamped onto PDF pages (Ghostscript + qpdf):
+[psoverlay/](psoverlay/README.md).
+Licence: MIT (LICENSE).
