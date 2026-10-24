@@ -28,9 +28,9 @@ basis** is used here: `cm`, `strcat`, `curvemake` and the `CURVE` class, lifted
 into `curvebase.ps` unchanged. No page preparation, no `Chapter`, no slot
 layout — an overlay needs none of it.
 
-## The two mechanisms
+## The mechanisms
 
-Both share one contract: a dictionary `Overlays` maps a page number to a
+A and B share one contract: a dictionary `Overlays` maps a page number to a
 procedure, and that procedure runs in PDF user space (points, origin at the
 lower left). A page with no entry is left alone.
 
@@ -40,8 +40,24 @@ file.
 
 **B — overlay sheet + `qpdf --overlay`** (`ovl.ps`). PostScript emits an
 N-page transparent sheet; qpdf stamps it onto the original, whose content
-streams are never re-interpreted. **This is the recommended route**: pages
-without an overlay come out pixel-identical to the source.
+streams are never re-interpreted. Pages without an overlay come out
+pixel-identical to the source, as long as each page's CropBox is centred in
+its MediaBox. qpdf 12.3.2 wraps the original
+page in a form and centres its CropBox in the MediaBox, so an off-centre
+CropBox moves the page's own content, blank sheet or not (10 pt on a test
+page; 23.6 pt and 276 pt on two library PDFs). Not in the release notes;
+`tests/` holds it as an expected failure.
+
+**C — append** (`lines2pdf.py`, boxes and lines only). Each page's content is
+wrapped in `q … Q` and a content stream with the strokes, in default user
+space, is appended. Nothing is re-interpreted or moved: the page renders as
+before whatever its CropBox (measured on the two library PDFs B moves, and
+on a page that pops below its start). Needs pikepdf.
+
+B and C are both kept; which one stays is decided once more functions are
+defined. What each changes: B moves the content of pages with an off-centre
+CropBox; C needs pikepdf and rewrites the file (pikepdf save), with the page
+content streams untouched apart from the added `q`/`Q` and strokes.
 
 ## Files
 
@@ -52,14 +68,17 @@ without an overlay come out pixel-identical to the source.
 | `h1.ps` | smallest hook example — two lines on page 3 |
 | `c4.ps` | both curves on page 3 via the hook (mechanism A) |
 | `ovl.ps` | the same curves as an overlay sheet (mechanism B) |
+| `lines2ps.py` | an overlay sheet of the boxes in a `lines.json` or a boxes file (mechanism B) |
+| `lines2pdf.py` | the same boxes stroked into the PDF itself (mechanism C) |
 
 ## Requirements
 
-Ghostscript 10, qpdf, poppler-utils (`pdfinfo`, `pdftoppm`). Nothing else.
+Ghostscript 10, qpdf, poppler-utils (`pdfinfo`, `pdftoppm`); pikepdf for
+`lines2pdf.py` (mechanism C) only.
 
 ## Usage
 
-Run from this directory. Mechanism B, the recommended one:
+Run from this directory. Mechanism B:
 
 ```sh
 gs -q -dBATCH -dNOPAUSE \
@@ -91,6 +110,95 @@ repository is public.
 **Always check the page count of the overlay sheet before stamping.** A
 PostScript error leaves a short sheet, and qpdf will happily stamp it — the
 result then looks plausible and is wrong.
+
+## Objects from a lines.json, or boxes with the page affine
+
+`lines2ps.py` writes an overlay sheet with every object stroked, one sheet
+page per PDF page, in the same `Overlays` contract. The input is a
+lines.json, MathPix-shaped (pdfdrill, inkdrill `--glyphs`, the MathPix
+lane) or GLYPHDRILL's layer projection (`*.overlay.lines.json`, its
+layers-contract L6 amendment), or boxes in image pixels with each page's
+`page_to_image`:
+
+```json
+{"pages": [{"page": 1, "page_to_image": [a, b, c, d, e, f],
+            "boxes": [{"bbox": [x0, y0, x1, y1], "type": "math"}]}]}
+```
+
+`page_to_image` maps PDF default user space (points, y up, the space of the
+MediaBox) to image pixels (y down): `x' = a*x + c*y + e`, `y' = b*x + d*y + f`.
+A lines.json page that carries `page_to_image` is drawn with it, except
+where the PDF page's CropBox does not start at (0, 0). There GLYPHDRILL
+writes `page_to_image` relative to the CropBox today (T-0066 f); the
+coordinator has ruled (2026-10-23) that it moves to default user space, so
+the contract above stays. Until GLYPHDRILL's files are in that frame such a
+page is skipped and the run is partial. Otherwise its lines are in pixels of the page as shown (CropBox, `/Rotate` applied),
+`page_width` x `page_height`, and the affine is built from the PDF's CropBox
+and rotation (`pdfinfo -box`), so no dpi has to be known.
+
+A line's shape, first found wins, all in image pixels: `region` (MathPix
+box); `runs` `[[y, x0, x1], ...]`, half-open pixel rows, drawn as the outline
+of their union (a GLYPHDRILL `A:white`); `segment` `[[x0, y0], [x1, y1]]`, an
+open line (gutters, baselines, `G:edge`); `cnt`, corner points, closed from
+three on and open with two. A line with none of them is not drawn and makes
+the run partial.
+
+```sh
+./lines2ps.py doc.lines.json doc.pdf -o rects.ps
+gs -q -dBATCH -dNOPAUSE -sDEVICE=pdfwrite -o rects.pdf rects.ps
+pdfinfo rects.pdf | grep Pages        # must equal the PDF's page count
+qpdf doc.pdf --overlay rects.pdf -- stamped.pdf
+```
+
+Mechanism C, the same input, in one step and without qpdf:
+
+```sh
+./lines2pdf.py doc.lines.json doc.pdf -o stamped.pdf
+```
+
+It puts enough `q` before each page's content that the content never pops
+below them, and the matching `Q` after it, so the strokes start in the
+page's default graphics state. Exit status as below; on bad input nothing
+is written.
+
+qpdf lays each sheet page over the target's TrimBox as shown (measured: it
+translates to the box origin, turns with `/Rotate`, and scales a sheet page
+of another size to fit). So each sheet page takes that size, and each box's
+points go image -> user space -> that frame; a skewed affine gives a
+quadrilateral. Colour by `type`: maths red, text blue, diagram/chart green,
+table magenta; GLYPHDRILL `B` blue, `A:white` green, `A:gutter` by status
+(gutter magenta, short orange, unsupported grey), `A:baseline` cyan, `A:gap`
+olive, `G:edge` by kind (gap light grey, touch red, side violet); everything
+else grey. The sheet is self-contained, so `gs` needs no permit. gs keeps a
+procedure's tokens on its operand stack while it reads it, so each page is
+drawn by an array of procedures of at most 10,000 tokens, and a path of
+more than 3,000 points is cut into open pieces (an A layer at 400 dpi
+overflowed a single procedure).
+
+Exit status: `0` every object drawn; `3` partial (a page beyond the PDF, a
+`page_to_image` on a page whose CropBox does not start at (0, 0), an
+affine that cannot be inverted, a line without a shape), each listed on
+stderr after `partial:`,
+the sheet still written; `2` bad input (not JSON, no page size, no PDF).
+
+Tests: `python3 -m unittest discover -s tests` (from the repository root).
+Mechanism C (`tests/test_lines2pdf.py`): with no boxes every page renders
+pixel-identical to the source, over the same page boxes and a page whose
+content pops below its start and changes the CTM there; with boxes the red
+stroke lies on the ink and no other pixel changes. Built to fail: the same
+pixel-identity check on the qpdf route must see pages move. On the two
+library PDFs (`$PDF_OVERLAY_LIBRARY`, default `~/pdfdrill-library`; skipped
+when absent) C must leave the rendered pages identical and B must not.
+Mechanism B:
+Each test page carries black ink; its pixel box is found by rendering the
+page as shown, stamped back, and the red stroke must lie on the black edges,
+over offset MediaBox and CropBox, TrimBox inside CropBox, and `/Rotate` 90,
+180, 270. GLYPHDRILL shapes: `runs` of an L of ink must outline the L, not
+its box; a `segment` must lie on a bar of ink; a page of 300 ragged shapes
+of 1000 rows must build in gs within 10 s. Built to fail: boxes shifted by
+15 px must be seen as off; the L drawn as its box must leave red far from
+the ink; a page beyond the PDF, a singular affine and a line without a
+shape must exit 3.
 
 ## The curve classes
 
@@ -156,6 +264,10 @@ Each line is a command run on the command line, not an estimate.
   x = 606.00 on a real paper page.
 - **B** — after `qpdf --overlay`, every page except the overlaid one is
   pixel-identical to the source; the overlaid page gains ink.
+- **C** — `lines2pdf.py` on 0008113v1's lines.json: 294 of 294 objects,
+  294 strokes in the file; against the source, every differing pixel on
+  pages 1–8 is a stroke colour. With no boxes, both library PDFs render
+  pixel-identical (all 18 pages; pages 1–20), where B moves them.
 - **inkdrill join** — 99.98 % of the page's ink pixels fall inside the reported
   glyph boxes, against 77.31 % for boxes shifted by 3 pt.
 
@@ -169,7 +281,8 @@ never against the original file.
   either the data is reversed or the class needs a flip.
 - The library's rotated axes (`axis.matrix`, `label.matrix`).
 - Whether `qpdf --overlay` preserves links and annotations.
-- Pages with non-zero `/Rotate`.
+- Pages with non-zero `/Rotate` for the curve examples (`ovl.ps`, `c4.ps`);
+  `lines2ps.py` sheets are tested at 90, 180 and 270.
 - Styling: grey, dash and a legend are not built.
 - Placement: the examples plot into the page's own margins. The DocEng figure
   shrinks the page and puts the profiles outside it, which needs a scaled

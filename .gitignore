@@ -1,3 +1,4 @@
 # PDFs stay local: test pages are third-party papers (repo is public),
 # and gs/qpdf outputs are regenerated.
 *.pdf
+__pycache__/
