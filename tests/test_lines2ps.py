@@ -325,6 +325,20 @@ class Status(unittest.TestCase):
         self.assertIn("frame undecided: CropBox starts at (50, 60)", res.stderr)
         self.assertIn("0 of 1 objects drawn", res.stdout)
 
+    def test_lines_page_to_image_on_rotated_page_is_partial(self):
+        # GLYPHDRILL's boxes are in the turned image, its page_to_image is
+        # not turned (T-0066 f): the page must not be drawn
+        pdf = os.path.join(self.tmp, "rot.pdf")
+        pdfgen.write_pdf(pdf, [{"MediaBox": [0, 0, 600, 800], "Rotate": 90}])
+        doc = {"pages": [{"page": 1, "page_width": 800, "page_height": 600,
+                          "page_to_image": [1, 0, 0, -1, 0, 800],
+                          "lines": [{"type": "B", "cnt": [[1, 1], [9, 1], [9, 9]]}]}]}
+        res = run(self.write(doc), pdf, "-o", self.out)
+        self.assertEqual(res.returncode, 3)
+        self.assertIn("partial: page 1: page_to_image without the /Rotate 90 turn",
+                      res.stderr)
+        self.assertIn("0 of 1 objects drawn", res.stdout)
+
     def test_complete_sheet_exits_zero(self):
         res = run(self.write({"pages": [self.page(1)]}), self.pdf, "-o", self.out)
         self.assertEqual(res.returncode, 0, res.stderr)

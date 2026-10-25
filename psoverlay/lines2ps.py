@@ -261,11 +261,17 @@ def read_lines_json(doc, geometry):
                 drawn.append([(pts, closed, colour(line)) for pts, closed in found])
         if "page_to_image" in p:
             affine = tuple(p["page_to_image"])
-            # GLYPHDRILL's frame is undecided where the CropBox does not
-            # start at (0, 0): user space or CropBox-relative (T-0066 f)
-            if 1 <= n <= len(geometry) and tuple(geometry[n - 1]["crop"][:2]) != (0, 0):
-                affine = ("page_to_image frame undecided: CropBox starts at "
-                          "({:g}, {:g})".format(*geometry[n - 1]["crop"][:2]))
+            # GLYPHDRILL writes page_to_image from the CropBox's corner and
+            # without /Rotate (T-0066 f, measured on its cropframe pages);
+            # ruled to move to default user space, not yet emitted so
+            if 1 <= n <= len(geometry):
+                g = geometry[n - 1]
+                if tuple(g["crop"][:2]) != (0, 0):
+                    affine = ("page_to_image frame undecided: CropBox starts at "
+                              "({:g}, {:g})".format(*g["crop"][:2]))
+                elif g["rotate"]:
+                    affine = (f"page_to_image without the /Rotate "
+                              f"{g['rotate']} turn")
         elif not 1 <= n <= len(geometry):
             affine = None
         else:

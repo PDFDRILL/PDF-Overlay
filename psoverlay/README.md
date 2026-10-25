@@ -128,8 +128,10 @@ layers-contract L6 amendment), or boxes in image pixels with each page's
 `page_to_image` maps PDF default user space (points, y up, the space of the
 MediaBox) to image pixels (y down): `x' = a*x + c*y + e`, `y' = b*x + d*y + f`.
 A lines.json page that carries `page_to_image` is drawn with it, except
-where the PDF page's CropBox does not start at (0, 0). There GLYPHDRILL
-writes `page_to_image` relative to the CropBox today (T-0066 f); the
+where the PDF page's CropBox does not start at (0, 0) or the page has a
+`/Rotate`. There GLYPHDRILL writes `page_to_image` from the CropBox's
+corner and without the turn today (T-0066 f), while its pixels are of the
+page as shown; the
 coordinator has ruled (2026-10-23) that it moves to default user space, so
 the contract above stays. Until GLYPHDRILL's files are in that frame such a
 page is skipped and the run is partial. Otherwise its lines are in pixels of the page as shown (CropBox, `/Rotate` applied),
@@ -176,7 +178,8 @@ more than 3,000 points is cut into open pieces (an A layer at 400 dpi
 overflowed a single procedure).
 
 Exit status: `0` every object drawn; `3` partial (a page beyond the PDF, a
-`page_to_image` on a page whose CropBox does not start at (0, 0), an
+`page_to_image` on a page whose CropBox does not start at (0, 0) or
+that has a `/Rotate`, an
 affine that cannot be inverted, a line without a shape), each listed on
 stderr after `partial:`,
 the sheet still written; `2` bad input (not JSON, no page size, no PDF).
