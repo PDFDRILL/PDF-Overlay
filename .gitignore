@@ -2,3 +2,5 @@
 # and gs/qpdf outputs are regenerated.
 *.pdf
 __pycache__/
+work/
+.worktrees/

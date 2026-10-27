@@ -1,5 +1,20 @@
 """Small PDFs with chosen page boxes and rotation, and PPM reading, for tests."""
+import datetime
+import os
 import subprocess
+import tempfile
+
+REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def workdir(suite, what):
+    """A new directory for one test's files, kept for inspection under
+    <repo>/work/tests/<suite>-<date>/ (ENGINEERING 2c). $PDF_OVERLAY_WORK
+    replaces <repo>/work/tests; set it to /tmp only for a throwaway run."""
+    root = os.environ.get("PDF_OVERLAY_WORK") or os.path.join(REPO, "work", "tests")
+    run = os.path.join(root, f"{suite}-{datetime.date.today():%Y-%m-%d}")
+    os.makedirs(run, exist_ok=True)
+    return tempfile.mkdtemp(prefix=what + "-", dir=run)
 
 
 def write_pdf(path, pages):

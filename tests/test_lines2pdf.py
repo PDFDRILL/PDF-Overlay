@@ -12,7 +12,6 @@ import json
 import os
 import subprocess
 import sys
-import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -72,7 +71,7 @@ def qpdf_route(tmp, lines, pdf):
 class Append(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.mkdtemp(prefix="lines2pdf-test-")
+        cls.tmp = pdfgen.workdir("lines2pdf", "test")
         cls.pdf = os.path.join(cls.tmp, "target.pdf")
         pages = []
         for case in base.CASES:
@@ -155,7 +154,7 @@ class Append(unittest.TestCase):
 
 class Status(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="lines2pdf-status-")
+        self.tmp = pdfgen.workdir("lines2pdf", "status")
         self.pdf = os.path.join(self.tmp, "one.pdf")
         pdfgen.write_pdf(self.pdf, [{"MediaBox": [0, 0, 600, 800]}])
         self.out = os.path.join(self.tmp, "o.pdf")
@@ -203,7 +202,7 @@ class Library(unittest.TestCase):
         pdf = os.path.join(LIBRARY, rel)
         if not os.path.exists(pdf):
             self.skipTest(f"not present: {pdf}")
-        tmp = tempfile.mkdtemp(prefix="lines2pdf-lib-")
+        tmp = pdfgen.workdir("lines2pdf", "lib")
         total = int(subprocess.run(["pdfinfo", pdf], capture_output=True, text=True)
                     .stdout.split("Pages:")[1].split()[0])
         lines = empty_lines(os.path.join(tmp, "empty.json"), total)

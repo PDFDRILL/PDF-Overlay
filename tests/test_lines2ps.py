@@ -7,12 +7,14 @@ The expected position comes from poppler's rendering, not from lines2ps's
 own arithmetic.
 
     python3 -m unittest discover -s tests
+
+Each test's files stay under work/tests/<suite>-<date>/ for inspection
+(gitignored); PDF_OVERLAY_WORK=/tmp for a throwaway run.
 """
 import json
 import os
 import subprocess
 import sys
-import tempfile
 import unittest
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -73,7 +75,7 @@ def off_by(a, b):
 class Placement(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.mkdtemp(prefix="lines2ps-test-")
+        cls.tmp = pdfgen.workdir("lines2ps", "test")
         cls.pdf = os.path.join(cls.tmp, "target.pdf")
         pages = []
         for case in CASES:
@@ -164,7 +166,7 @@ class GlyphdrillShapes(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.tmp = tempfile.mkdtemp(prefix="lines2ps-gd-")
+        cls.tmp = pdfgen.workdir("lines2ps", "gd")
         cls.pdf = os.path.join(cls.tmp, "page.pdf")
         # an L of ink (a white region's shape), and a thin bar (a segment)
         ink = (b"0 g 100 500 200 40 re f 100 400 40 140 re f "
@@ -281,7 +283,7 @@ class Status(unittest.TestCase):
     """A partial sheet must say so in its exit status."""
 
     def setUp(self):
-        self.tmp = tempfile.mkdtemp(prefix="lines2ps-status-")
+        self.tmp = pdfgen.workdir("lines2ps", "status")
         self.pdf = os.path.join(self.tmp, "one.pdf")
         pdfgen.write_pdf(self.pdf, [{"MediaBox": [0, 0, 600, 800]}])
         self.out = os.path.join(self.tmp, "o.ps")
